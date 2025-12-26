@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  youtube-sync:
+    build: .
+    container_name: youtube-music-sync
+    volumes:
+      # Mount your downloads directory
+      - ./downloads:/downloads
+      # Mount your playlist file
+      - ./playlists.txt:/app/playlists.txt:ro
+      # Mount state file for persistence
+      - ./download_state.json:/app/download_state.json
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+
+  # Optional: Run the dashboard
+  dashboard:
+    build: .
+    container_name: youtube-music-dashboard
+    command: streamlit run dashboard.py --server.port=8501 --server.address=0.0.0.0
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./downloads:/downloads
+      - ./playlists.txt:/app/playlists.txt:ro
+      - ./download_state.json:/app/download_state.json
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped

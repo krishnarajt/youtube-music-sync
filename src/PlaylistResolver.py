@@ -4,6 +4,7 @@ import subprocess
 import json
 import os
 import re
+import sys
 from tqdm import tqdm
 
 
@@ -55,7 +56,17 @@ class PlaylistResolver:
                 info = {"id": str(playlist_id), "title": str(title), "url": url}
                 self.state.cache_info(playlist_id, info)
                 return info
-        except Exception:
+        except subprocess.CalledProcessError as e:
+            print(f"Warning: Failed to fetch info for {url}: {e}", file=sys.stderr)
+            info = {
+                "id": str(playlist_id),
+                "title": f"Playlist_{playlist_id}",
+                "url": url,
+            }
+            self.state.cache_info(playlist_id, info)
+            return info
+        except Exception as e:
+            print(f"Error processing playlist info: {e}", file=sys.stderr)
             info = {
                 "id": str(playlist_id),
                 "title": f"Playlist_{playlist_id}",
@@ -73,7 +84,11 @@ class PlaylistResolver:
             cmd = [self.config.ytdlp_path, "--flat-playlist", "--dump-json", url]
             try:
                 result = subprocess.run(
-                    cmd, capture_output=True, text=True, encoding="utf-8", check=True
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    check=True,
                 )
                 for line in result.stdout.strip().split("\n"):
                     if not line:
@@ -89,13 +104,18 @@ class PlaylistResolver:
                         )
                 if playlists:
                     break
-            except subprocess.CalledProcessError:
+            except subprocess.CalledProcessError as e:
+                print(f"Warning: Failed to fetch from {url}: {e}", file=sys.stderr)
+                continue
+            except Exception as e:
+                print(f"Error processing channel: {e}", file=sys.stderr)
                 continue
         return playlists
 
     def from_file(self):
         file_path = self.config.playlist_file
         if not os.path.exists(file_path):
+            print(f"Warning: Playlist file not found: {file_path}", file=sys.stderr)
             return []
 
         urls = []

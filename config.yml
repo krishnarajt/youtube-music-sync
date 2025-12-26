@@ -33,21 +33,23 @@ root_path: "C:\\Users\\Krishnaraj\\Downloads\\testing_youtube_music_downloader"
 # Path to yt-dlp executable
 # Windows example: "C:/Tools/yt-dlp.exe" or just "yt-dlp" if in PATH
 # Linux example: "/usr/local/bin/yt-dlp" or just "yt-dlp" if in PATH
-ytdlp_path: "C:\\Users\\Krishnaraj\\Downloads\\testing_youtube_music_downloader\\yt-dlp.exe"
+ytdlp_path: "P:\\programs\\python\\youtube-music-sync\\yt-dlp.exe"
 
 # Path to ffmpeg executable (required for audio conversion)
 # Windows example: "C:/Tools/ffmpeg.exe" or just "ffmpeg" if in PATH
 # Linux example: "/usr/bin/ffmpeg" or just "ffmpeg" if in PATH
-ffmpeg_path: "C:/Tools/ffmpeg.exe"
+ffmpeg_path: ""  # Leave empty if ffmpeg is in PATH
 
 # Audio format for downloaded files
-# Options: "auto" (best available), "mp3", "flac", "wav", "m4a", "opus", "vorbis", "aac"
-audio_format: "auto"
+# IMPORTANT: Use "best" not "auto" - "auto" is not recognized by yt-dlp
+# Options: "best", "mp3", "flac", "wav", "m4a", "opus", "vorbis", "aac"
+audio_format: "best"  # Changed from "auto" to "best"
 
-# Audio quality (only applies when audio_format is not "auto")
+# Audio quality (0 = best quality)
 # For MP3: 0 (best) to 9 (worst), or bitrate like "320K"
 # For other formats: 0 (best) to 10 (worst)
 audio_quality: "0"
 
 # Optional: Additional yt-dlp arguments (advanced users)
-# extra_args: "--embed-thumbnail --add-metadata"
+# These are already included in the script, but you can add more here
+extra_args: ""
