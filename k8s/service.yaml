@@ -1,12 +1,16 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: youtube-music-sync-secrets
+  name: youtube-music-sync
 spec:
   selector:
-    app: youtube-music-sync-secrets
+    app: youtube-music-sync  # Corrected to match the label in deployment.yaml
   ports:
-  - port: 8000
+  - name: sync-api
+    port: 8000
     targetPort: 8000
-    nodePort: 30082
+  - name: dashboard
+    port: 5801       # The port you want to use to access the dashboard
+    targetPort: 8501 # The port Streamlit is actually listening on in the pod
+    nodePort: 32005  # Optional: specific port if using NodePort for external access
   type: NodePort
