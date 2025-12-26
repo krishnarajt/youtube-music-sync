@@ -7,6 +7,8 @@ services:
     volumes:
       # Mount your downloads directory
       - ./downloads:/downloads
+      # Mount your main config file directly
+      - ./config.yml:/app/config.yml:ro
       # Mount your playlist file
       - ./playlists.txt:/app/playlists.txt:ro
       # Mount state file for persistence
@@ -15,7 +17,6 @@ services:
       - PYTHONUNBUFFERED=1
     restart: unless-stopped
 
-  # Optional: Run the dashboard
   dashboard:
     build: .
     container_name: youtube-music-dashboard
@@ -24,6 +25,7 @@ services:
       - "8501:8501"
     volumes:
       - ./downloads:/downloads
+      - ./config.yml:/app/config.yml:ro
       - ./playlists.txt:/app/playlists.txt:ro
       - ./download_state.json:/app/download_state.json
     environment:
