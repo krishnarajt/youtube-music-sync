@@ -5,6 +5,7 @@ from src.StateManager import StateManager
 from src.PlaylistResolver import PlaylistResolver
 from src.DownloadEngine import DownloadEngine
 
+from src.WhisperLyricsEngine import WhisperLyricsEngine
 
 class YouTubeApp:
     """
@@ -23,6 +24,7 @@ class YouTubeApp:
             print(f"✓ Audio quality: {self.config.audio_quality}")
 
             self.state = StateManager()
+            self.lyrics_engine = WhisperLyricsEngine()
             self.resolver = PlaylistResolver(self.config, self.state)
             self.engine = DownloadEngine(self.config)
             print("✓ All components initialized\n")
@@ -95,11 +97,28 @@ class YouTubeApp:
                 success = self.engine.download(p)
 
                 if success:
+                    # ---- Whisper lyrics fallback ----
+                    playlist_dir = (
+                        self.config.root_path
+                        / self.engine.clean_filename(p["title"])
+                    )
+
+                    print("\n🎤 Generating lyrics with Whisper (if missing)...")
+
+                    for audio_file in playlist_dir.glob("*.opus"):
+                        lrc_file = audio_file.with_suffix(".lrc")
+                        if not lrc_file.exists():
+                            try:
+                                self.lyrics_engine.generate_lrc(audio_file)
+                                print(f"   ✓ Lyrics generated for {audio_file.name}")
+                            except Exception as e:
+                                print(f"   ⚠️ Failed lyrics for {audio_file.name}: {e}")
+
                     self.state.mark_completed(p["id"])
                     print(f"\n✅ SUCCESS: {p['title']} completed and marked as done")
                     success_count += 1
-                    # Brief pause to be polite to the API
                     time.sleep(2)
+
                 else:
                     print(
                         f"\n❌ FAILED: {p['title']} - download did not complete successfully"
