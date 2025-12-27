@@ -17,7 +17,7 @@ spec:
           image: ghcr.io/krishnarajt/youtube-music-sync:git-bootstrap
           imagePullPolicy: IfNotPresent
 
-          command: ["python", "dashboard.py"]
+          command: ["streamlit", "run", "dashboard.py"]
 
           env:
             - name: PYTHONUNBUFFERED
