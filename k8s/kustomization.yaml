@@ -1,0 +1,19 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# This tells Kustomize to include your deployment
+resources:
+  - deployment.yaml
+
+# This is the "No-Paste" magic. 
+# It creates a ConfigMap named 'youtube-music-sync-config' 
+# using the actual content of the file at the root of your repo.
+configMapGenerator:
+  - name: youtube-music-sync-config
+    files:
+      - config.yml=../config.yml
+
+# This ensures that if the config changes, 
+# the Deployment gets a new hash and restarts automatically.
+generatorOptions:
+  disableNameSuffixHash: false
