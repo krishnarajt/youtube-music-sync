@@ -23,9 +23,6 @@ spec:
                 name: youtube-music-sync-env
 
           volumeMounts:
-            - name: downloads
-              mountPath: /downloads
-
             - name: app-config
               mountPath: /app/config.yml
               subPath: config.yml
@@ -53,9 +50,6 @@ spec:
             - containerPort: 8501
 
           volumeMounts:
-            - name: downloads
-              mountPath: /downloads
-
             - name: app-config
               mountPath: /app/config.yml
               subPath: config.yml
@@ -68,10 +62,6 @@ spec:
               mountPath: /music
 
       volumes:
-        - name: downloads
-          persistentVolumeClaim:
-            claimName: youtube-music-sync-downloads
-
         - name: app-config
           configMap:
             name: app-config
