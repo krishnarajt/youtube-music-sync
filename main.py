@@ -6,6 +6,9 @@ from src.StateManager import StateManager
 from src.PlaylistResolver import PlaylistResolver
 from src.DownloadEngine import DownloadEngine
 from src.WhisperLyricsEngine import WhisperLyricsEngine
+from src.logging_utils import get_logger
+
+logger = get_logger(__name__)
 
 
 class YouTubeApp:
@@ -16,31 +19,27 @@ class YouTubeApp:
 
     def __init__(self):
         try:
-            print("Initializing components...")
+            logger.info("Initializing components...")
             self.config = ConfigManager()
-            print(f"✓ Config loaded (Method: {self.config.input_method})")
-            print(f"✓ yt-dlp path: {self.config.ytdlp_path}")
-            print(f"✓ Root path: {self.config.root_path}")
+            logger.info(f"Config loaded (Method: {self.config.input_method})")
+            logger.info(f"yt-dlp path: {self.config.ytdlp_path}")
+            logger.info(f"Root path: {self.config.root_path}")
 
             self.state = StateManager()
             self.lyrics_engine = WhisperLyricsEngine()
             self.resolver = PlaylistResolver(self.config, self.state)
             self.engine = DownloadEngine(self.config)
-            print("✓ All components initialized\n")
+            logger.info("All components initialized")
         except Exception as e:
-            print(f"Failed to initialize components: {e}")
-            import traceback
-
-            traceback.print_exc()
+            logger.error(f"Failed to initialize components: {e}", exc_info=True)
             sys.exit(1)
 
     def perform_sync(self):
         """Single sync pass logic."""
-        print(f"\n🔄 Sync started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        print("=" * 60)
+        logger.info(f"Sync started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
         # 1. Resolve Target Playlists (Fetches latest songs from URLs/Channels)
-        print(f"Input Method: {self.config.input_method}")
+        logger.info(f"Input Method: {self.config.input_method}")
         if self.config.input_method == "channel":
             playlists = self.resolver.from_channel()
         elif self.config.input_method == "playlist_file":
@@ -53,10 +52,12 @@ class YouTubeApp:
 
         playlists = [p for p in playlists if p]
         if not playlists:
-            print("❌ No playlists found! Check your config or internet connection.")
+            logger.warning(
+                "No playlists found! Check your config or internet connection."
+            )
             return
 
-        print(f"📊 Found {len(playlists)} playlists to check.")
+        logger.info(f"Found {len(playlists)} playlists to check.")
 
         # 2. Processing Loop
         # Note: We no longer filter by 'self.state.is_completed' here.
@@ -65,7 +66,7 @@ class YouTubeApp:
         fail_count = 0
 
         for i, p in enumerate(playlists, 1):
-            print(f"\n[{i}/{len(playlists)}] Checking for updates: {p['title']}")
+            logger.info(f"[{i}/{len(playlists)}] Checking for updates: {p['title']}")
 
             try:
                 # DownloadEngine handles skipping existing files via download_archive.txt
@@ -81,42 +82,42 @@ class YouTubeApp:
                         if not lrc_file.exists():
                             try:
                                 self.lyrics_engine.generate_lrc(audio_file)
-                                print(f"   ✓ Lyrics generated for {audio_file.name}")
+                                logger.info(f"Lyrics generated for {audio_file.name}")
                             except Exception as e:
-                                print(f"   ⚠️ Failed lyrics for {audio_file.name}: {e}")
+                                logger.warning(
+                                    f"Failed lyrics for {audio_file.name}: {e}"
+                                )
 
                     success_count += 1
                 else:
                     fail_count += 1
 
             except Exception as e:
-                print(f"\n💥 EXCEPTION during sync of {p['title']}: {e}")
+                logger.error(
+                    f"Exception during sync of {p['title']}: {e}", exc_info=True
+                )
                 fail_count += 1
 
-        print("\n" + "=" * 60)
-        print(f"✨ Sync Cycle Finished!")
-        print(f"   Successful/Up-to-date: {success_count}")
-        print(f"   Failed: {fail_count}")
-        print("=" * 60)
+        logger.info(
+            f"Sync Cycle Finished! Successful/Up-to-date: {success_count}, Failed: {fail_count}"
+        )
 
     def run_forever(self):
         """Runs the sync every 12 hours."""
         INTERVAL = 12 * 60 * 60  # 12 Hours in seconds
 
-        print("\n" + "=" * 60)
-        print("🎵 YouTube Music Sync (Automated Mode)")
-        print(f"Cycle Interval: 12 Hours")
-        print("=" * 60 + "\n")
+        logger.info("YouTube Music Sync (Automated Mode) started")
+        logger.info(f"Cycle Interval: 12 Hours")
 
         while True:
             try:
                 self.perform_sync()
             except Exception as e:
-                print(f"⚠️ Unexpected error in main loop: {e}")
+                logger.error(f"Unexpected error in main loop: {e}", exc_info=True)
 
             next_run = datetime.now() + timedelta(seconds=INTERVAL)
-            print(
-                f"\n💤 Sleeping. Next sync scheduled for: {next_run.strftime('%Y-%m-%d %H:%M:%S')}"
+            logger.info(
+                f"Sleeping. Next sync scheduled for: {next_run.strftime('%Y-%m-%d %H:%M:%S')}"
             )
             time.sleep(INTERVAL)
 
@@ -126,11 +127,8 @@ if __name__ == "__main__":
         app = YouTubeApp()
         app.run_forever()
     except KeyboardInterrupt:
-        print("\n\n🛑 Interrupted by user. Exiting...")
+        logger.info("Interrupted by user. Exiting...")
         sys.exit(0)
     except Exception as e:
-        print(f"\n💥 A fatal error occurred: {e}")
-        import traceback
-
-        traceback.print_exc()
+        logger.error(f"A fatal error occurred: {e}", exc_info=True)
         sys.exit(1)

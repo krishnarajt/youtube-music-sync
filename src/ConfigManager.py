@@ -3,6 +3,9 @@ import os
 import sys
 from pathlib import Path
 from shutil import which
+from src.logging_utils import get_logger
+
+logger = get_logger(__name__)
 
 
 class ConfigManager:
@@ -17,12 +20,13 @@ class ConfigManager:
     def _load(self):
         try:
             with open(self.path, "r", encoding="utf-8") as f:
+                logger.info(f"Loading config from: {self.path}")
                 return yaml.safe_load(f)
         except FileNotFoundError:
-            print(f"Error: Config file '{self.path}' not found!")
+            logger.error(f"Config file '{self.path}' not found!")
             sys.exit(1)
         except yaml.YAMLError as e:
-            print(f"Error: Failed to parse config file: {e}")
+            logger.error(f"Failed to parse config file: {e}")
             sys.exit(1)
 
     def _setup_properties(self):
@@ -40,13 +44,16 @@ class ConfigManager:
 
         if self.input_method == "playlist_file":
             if not self.playlist_file:
-                print(
-                    "Error: input_method is 'playlist_file' but no playlist_file was provided"
+                logger.error(
+                    "input_method is 'playlist_file' but no playlist_file was provided"
                 )
                 sys.exit(1)
 
             self.playlist_file = str(Path(self.playlist_file).resolve())
             self.playlist_urls = self._load_playlist_file(self.playlist_file)
+            logger.info(
+                f"Loaded {len(self.playlist_urls)} playlists from file: {self.playlist_file}"
+            )
 
         # Root path resolution
         root = self.data.get("root_path", "./downloads")
@@ -55,6 +62,7 @@ class ConfigManager:
 
         self.root_path = Path(root)
         self.root_path.mkdir(parents=True, exist_ok=True)
+        logger.info(f"Root download path: {self.root_path}")
 
         # Executables
         self.ytdlp_path = self._resolve_exe(self.data.get("ytdlp_path", "yt-dlp"))
@@ -86,13 +94,14 @@ class ConfigManager:
             if not lines:
                 raise ValueError("Playlist file is empty")
 
+            logger.info(f"Successfully loaded {len(lines)} playlists from {path}")
             return lines
 
         except FileNotFoundError:
-            print(f"Error: Playlist file '{path}' not found!")
+            logger.error(f"Playlist file '{path}' not found!")
             sys.exit(1)
         except Exception as e:
-            print(f"Error: Failed to load playlist file '{path}': {e}")
+            logger.error(f"Failed to load playlist file '{path}': {e}")
             sys.exit(1)
 
     def _resolve_exe(self, path):

@@ -1,11 +1,14 @@
 from src.ConfigManager import ConfigManager
 from src.StateManager import StateManager
+from src.logging_utils import get_logger
 import subprocess
 import json
 import os
 import re
 import sys
 from tqdm import tqdm
+
+logger = get_logger(__name__)
 
 
 class PlaylistResolver:
@@ -23,9 +26,10 @@ class PlaylistResolver:
         playlist_id = self.extract_id(url)
         cached = self.state.get_cached_info(playlist_id)
         if cached:
+            logger.debug(f"Using cached info for playlist {playlist_id}")
             return cached
 
-        print(f"Fetching info for: {url}")
+        logger.info(f"Fetching playlist info for: {url}")
         cmd = [
             self.config.ytdlp_path,
             "--flat-playlist",
@@ -55,9 +59,10 @@ class PlaylistResolver:
                 )
                 info = {"id": str(playlist_id), "title": str(title), "url": url}
                 self.state.cache_info(playlist_id, info)
+                logger.debug(f"Cached playlist info: {title}")
                 return info
         except subprocess.CalledProcessError as e:
-            print(f"Warning: Failed to fetch info for {url}: {e}", file=sys.stderr)
+            logger.warning(f"Failed to fetch info for {url}: {e}")
             info = {
                 "id": str(playlist_id),
                 "title": f"Playlist_{playlist_id}",
@@ -66,7 +71,7 @@ class PlaylistResolver:
             self.state.cache_info(playlist_id, info)
             return info
         except Exception as e:
-            print(f"Error processing playlist info: {e}", file=sys.stderr)
+            logger.error(f"Error processing playlist info for {url}: {e}")
             info = {
                 "id": str(playlist_id),
                 "title": f"Playlist_{playlist_id}",
@@ -76,7 +81,7 @@ class PlaylistResolver:
             return info
 
     def from_channel(self):
-        print("Fetching playlists from channel...")
+        logger.info("Fetching playlists from channel...")
         playlists = []
         urls_to_try = [f"{self.config.channel_url}/playlists", self.config.channel_url]
 
@@ -103,19 +108,20 @@ class PlaylistResolver:
                             }
                         )
                 if playlists:
+                    logger.info(f"Found {len(playlists)} playlists from channel")
                     break
             except subprocess.CalledProcessError as e:
-                print(f"Warning: Failed to fetch from {url}: {e}", file=sys.stderr)
+                logger.warning(f"Failed to fetch from {url}: {e}")
                 continue
             except Exception as e:
-                print(f"Error processing channel: {e}", file=sys.stderr)
+                logger.error(f"Error processing channel {url}: {e}")
                 continue
         return playlists
 
     def from_file(self):
         file_path = self.config.playlist_file
         if not os.path.exists(file_path):
-            print(f"Warning: Playlist file not found: {file_path}", file=sys.stderr)
+            logger.warning(f"Playlist file not found: {file_path}")
             return []
 
         urls = []
@@ -136,9 +142,11 @@ class PlaylistResolver:
                 elif line.startswith(("PL", "OL")):
                     urls.append(f"https://music.youtube.com/playlist?list={line}")
 
+        logger.info(f"Processing {len(urls)} playlist URLs from file")
         results = []
         for url in tqdm(urls, desc="Processing file URLs", unit="url"):
             info = self.get_playlist_info(url)
             if info:
                 results.append(info)
+        logger.info(f"Successfully processed {len(results)} playlists from file")
         return results

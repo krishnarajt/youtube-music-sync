@@ -4,6 +4,9 @@ from typing import Optional
 
 from faster_whisper import WhisperModel
 from utils.vtt_to_lrc import vtt_to_lrc
+from src.logging_utils import get_logger
+
+logger = get_logger(__name__)
 
 
 class WhisperLyricsEngine:
@@ -17,17 +20,22 @@ class WhisperLyricsEngine:
         model_size: str = "small",
         compute_type: str = "int8",
     ):
+        logger.info(
+            f"Initializing Whisper model: {model_size} (compute_type: {compute_type})"
+        )
         self.model = WhisperModel(
             model_size,
             device="cpu",
             compute_type=compute_type,
         )
+        logger.info("Whisper model initialized successfully")
 
     def _to_wav(self, audio_path: Path) -> Path:
         """
         Convert audio to mono 16k WAV for Whisper.
         """
         wav_path = audio_path.with_suffix(".wav")
+        logger.debug(f"Converting {audio_path.name} to WAV format")
 
         subprocess.run(
             [
@@ -68,13 +76,16 @@ class WhisperLyricsEngine:
 
     def generate_lrc(self, audio_path: Path) -> Optional[Path]:
         if not audio_path.exists():
+            logger.warning(f"Audio file not found: {audio_path}")
             return None
 
+        logger.info(f"Generating LRC lyrics for: {audio_path.name}")
         wav_path = self._to_wav(audio_path)
         vtt_path = audio_path.with_suffix(".vtt")
         lrc_path = audio_path.with_suffix(".lrc")
 
         try:
+            logger.debug(f"Running Whisper transcription on {wav_path.name}")
             segments, info = self.model.transcribe(
                 str(wav_path),
                 task="transcribe",
@@ -83,6 +94,7 @@ class WhisperLyricsEngine:
 
             # 🔑 Only override Urdu
             if info.language == "ur":
+                logger.debug("Detected Urdu language, overriding with Hindi")
                 segments, info = self.model.transcribe(
                     str(wav_path),
                     task="transcribe",
@@ -91,9 +103,16 @@ class WhisperLyricsEngine:
 
             self._write_vtt(segments, vtt_path)
             vtt_to_lrc(vtt_path, lrc_path)
+            logger.info(f"Successfully generated LRC file: {lrc_path.name}")
 
             return lrc_path
 
+        except Exception as e:
+            logger.error(
+                f"Failed to generate LRC for {audio_path.name}: {e}", exc_info=True
+            )
+            return None
         finally:
             if wav_path.exists():
                 wav_path.unlink()
+                logger.debug(f"Cleaned up temporary WAV file: {wav_path.name}")

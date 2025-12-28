@@ -1,9 +1,12 @@
 from src.ConfigManager import ConfigManager
+from src.logging_utils import get_logger
 import subprocess
 import re
 import os
 from pathlib import Path
 from utils.vtt_to_lrc import vtt_to_lrc
+
+logger = get_logger(__name__)
 
 
 class DownloadEngine:
@@ -80,8 +83,8 @@ class DownloadEngine:
         if self.config.extra_args:
             cmd.extend(self.config.extra_args.split())
 
-        print(f"\n[DEBUG] Target Directory: {dest_dir}")
-        print(f"[DEBUG] Executing Command:\n{' '.join(cmd)}\n")
+        logger.info(f"Target Directory: {dest_dir}")
+        logger.debug(f"Executing yt-dlp command for playlist: {clean_title}")
 
         download_started = False
         error_occurred = False
@@ -91,8 +94,8 @@ class DownloadEngine:
             # Pre-flight check: Ensure yt-dlp executable exists if a full path was provided
             if "\\" in self.config.ytdlp_path or "/" in self.config.ytdlp_path:
                 if not Path(self.config.ytdlp_path).exists():
-                    print(
-                        f"❌ [ERROR] yt-dlp executable not found at: {self.config.ytdlp_path}"
+                    logger.error(
+                        f"yt-dlp executable not found at: {self.config.ytdlp_path}"
                     )
                     return False
 
@@ -121,7 +124,7 @@ class DownloadEngine:
                         "already been recorded in the archive",
                     ]
                 ):
-                    print(f"   {line}")
+                    logger.info(f"   {line}")
                     download_started = True
 
                 # Check for errors
@@ -131,18 +134,18 @@ class DownloadEngine:
                         "video unavailable" in line.lower()
                         or "private video" in line.lower()
                     ):
-                        print(f"   ⚠️ Skipping: {line}")
+                        logger.warning(f"Skipping unavailable video: {line}")
                         continue
 
                     error_occurred = True
                     error_logs.append(line)
-                    print(f"   ❌ {line}")
+                    logger.error(f"{line}")
 
                 # Print other relevant warnings or status messages
                 elif any(
                     x in line.lower() for x in ["warning", "postprocess", "ffmpeg"]
                 ):
-                    print(f"   {line}")
+                    logger.info(f"   {line}")
 
             process.wait()
 
@@ -152,15 +155,13 @@ class DownloadEngine:
             )
 
             if not success:
-                print("\n" + "!" * 60)
-                print(f"FAILED: {playlist_info['title']}")
-                print(f"Exit Code: {process.returncode}")
+                logger.error(f"Download failed for: {playlist_info['title']}")
+                logger.error(f"Exit Code: {process.returncode}")
                 if error_logs:
-                    print("Captured Error Messages:")
+                    logger.error("Captured Error Messages:")
                     for err in error_logs[-5:]:
-                        print(f"  - {err}")
-                print("Check the URL or your network connection.")
-                print("!" * 60 + "\n")
+                        logger.error(f"  {err}")
+                logger.error("Check the URL or your network connection.")
                 return False
 
             # ---- Post-process: VTT → LRC ----
@@ -169,15 +170,17 @@ class DownloadEngine:
                     lrc_file = vtt_file.with_suffix(".lrc")
                     try:
                         vtt_to_lrc(vtt_file, lrc_file)
-                        print(f"[LYRICS] Converted {vtt_file.name} → {lrc_file.name}")
+                        logger.info(
+                            f"Converted VTT to LRC: {vtt_file.name} → {lrc_file.name}"
+                        )
                     except Exception as e:
-                        print(f"[LYRICS] Failed to convert {vtt_file.name}: {e}")
+                        logger.error(f"Failed to convert {vtt_file.name}: {e}")
 
+            logger.info(
+                f"Successfully completed download for: {playlist_info['title']}"
+            )
             return True
 
         except Exception as e:
-            print(f"\n💥 [CRITICAL EXCEPTION] Download Engine failed: {e}")
-            import traceback
-
-            traceback.print_exc()
+            logger.error(f"Download Engine exception: {e}", exc_info=True)
             return False

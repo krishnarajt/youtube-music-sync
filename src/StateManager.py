@@ -1,5 +1,8 @@
 import json
 from pathlib import Path
+from src.logging_utils import get_logger
+
+logger = get_logger(__name__)
 
 
 class StateManager:
@@ -16,20 +19,26 @@ class StateManager:
             "playlist_info": {},
         }
         if not self.file_path.exists():
+            logger.info(f"State file {self.file_path} not found, using default state")
             return default_state
         try:
             with open(self.file_path, "r", encoding="utf-8") as f:
                 content = f.read().strip()
+                logger.info(f"Loaded state from {self.file_path}")
                 return json.loads(content) if content else default_state
         except (json.JSONDecodeError, ValueError):
+            logger.warning(
+                f"State file {self.file_path} is corrupted, using default state"
+            )
             return default_state
 
     def save(self):
         try:
             with open(self.file_path, "w", encoding="utf-8") as f:
                 json.dump(self.state, f, indent=2, ensure_ascii=False)
+            logger.debug(f"State saved to {self.file_path}")
         except Exception as e:
-            print(f"[STATE ERROR] Failed to save state: {e}")
+            logger.error(f"Failed to save state: {e}")
 
     def is_completed(self, playlist_id):
         return str(playlist_id) in self.state["completed_playlists"]
