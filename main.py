@@ -126,7 +126,7 @@ class YouTubeApp:
                     # Run album naming for this specific playlist
                     logger.info(f"Running album naming for: {playlist_title}")
                     try:
-                        namer = NameAlbumFromFolders(playlist_dir)
+                        namer = NameAlbumFromFolders(self.config.root_path)
                         namer.run()
                         logger.info(f"✓ Album naming completed for: {playlist_title}")
                     except ImportError:
