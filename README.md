@@ -17,3 +17,11 @@ Script and docker that runs periodically and syncs youtube playlists with local 
 # Thanks to 
 1. The kind developers and the community of yt-dlp.
 2. claude.ai
+
+
+## improvements
+1. deletion of opus files is not happening consistantly
+2. cover download is not consistant. we could try different ones. 
+3. ui could be improved massively. 
+4. completed playlists is not updated in state. 
+5. fix error in ui click
