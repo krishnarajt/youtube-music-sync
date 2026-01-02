@@ -7,6 +7,7 @@ from src.StateManager import StateManager
 from src.PlaylistResolver import PlaylistResolver
 from src.DownloadEngine import DownloadEngine
 from src.WhisperLyricsEngine import WhisperLyricsEngine
+from utils.LyricsEmbedder import LyricsEmbedder
 from src.logging_utils import get_logger
 from utils.name_album_from_folders import NameAlbumFromFolders
 
@@ -29,6 +30,7 @@ class YouTubeApp:
 
             self.state = StateManager()
             self.lyrics_engine = WhisperLyricsEngine()
+            self.lyrics_embedder = LyricsEmbedder()
             self.resolver = PlaylistResolver(self.config, self.state)
             self.engine = DownloadEngine(self.config)
             logger.info("All components initialized")
@@ -54,6 +56,60 @@ class YouTubeApp:
             )
         except Exception as e:
             logger.error(f"Album naming failed: {e}", exc_info=True)
+
+    def process_playlist_lyrics_and_embedding(self, playlist_dir: Path) -> None:
+        """
+        Generate lyrics for audio files without LRC and embed existing LRC files.
+
+        Args:
+            playlist_dir: Path to the playlist directory
+        """
+        # Supported audio extensions
+        audio_extensions = ["*.mp3", "*.opus", "*.m4a", "*.flac"]
+
+        # Step 1: Generate missing lyrics using Whisper
+        logger.info(f"Checking for missing lyrics in: {playlist_dir.name}")
+        lyrics_generated = 0
+
+        for ext in audio_extensions:
+            for audio_file in playlist_dir.glob(ext):
+                lrc_file = audio_file.with_suffix(".lrc")
+
+                # Generate lyrics if LRC doesn't exist
+                if not lrc_file.exists():
+                    try:
+                        logger.info(f"Generating lyrics for: {audio_file.name}")
+                        self.lyrics_engine.generate_lrc(audio_file)
+                        logger.info(f"✓ Lyrics generated for {audio_file.name}")
+                        lyrics_generated += 1
+                    except Exception as e:
+                        logger.warning(
+                            f"Failed to generate lyrics for {audio_file.name}: {e}"
+                        )
+
+        if lyrics_generated > 0:
+            logger.info(f"Generated {lyrics_generated} new lyrics files")
+
+        # Step 2: Embed LRC files into audio files
+        logger.info(f"Embedding lyrics into audio files in: {playlist_dir.name}")
+
+        try:
+            stats = self.lyrics_embedder.embed_lyrics_for_directory(
+                playlist_dir,
+                recursive=False,  # Only process current directory
+                skip_if_exists=True,  # Skip files that already have embedded lyrics
+            )
+
+            if stats["embedded"] > 0:
+                logger.info(
+                    f"✓ Embedded lyrics into {stats['embedded']} files "
+                    f"({stats['skipped']} skipped, {stats['failed']} failed)"
+                )
+            else:
+                logger.debug("No new lyrics to embed")
+
+        except Exception as e:
+            logger.error(f"Failed to embed lyrics for {playlist_dir.name}: {e}")
 
     def perform_sync(self):
         """Single sync pass logic."""
@@ -99,29 +155,12 @@ class YouTubeApp:
                 success = self.engine.download(p)
 
                 if success:
-                    # Whisper lyrics fallback for any new songs
                     playlist_dir = self.config.root_path / self.engine.clean_filename(
                         playlist_title
                     )
 
-                    # Check both .opus and .mp3 files for lyrics
-                    audio_extensions = ["*.mp3", "*.opus"]
-                    for ext in audio_extensions:
-                        for audio_file in playlist_dir.glob(ext):
-                            lrc_file = audio_file.with_suffix(".lrc")
-                            if not lrc_file.exists():
-                                try:
-                                    logger.info(
-                                        f"Generating lyrics for: {audio_file.name}"
-                                    )
-                                    self.lyrics_engine.generate_lrc(audio_file)
-                                    logger.info(
-                                        f"✓ Lyrics generated for {audio_file.name}"
-                                    )
-                                except Exception as e:
-                                    logger.warning(
-                                        f"Failed lyrics for {audio_file.name}: {e}"
-                                    )
+                    # Process lyrics generation and embedding
+                    self.process_playlist_lyrics_and_embedding(playlist_dir)
 
                     # Run album naming for this specific playlist
                     logger.info(f"Running album naming for: {playlist_title}")
