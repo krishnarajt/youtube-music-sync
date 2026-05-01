@@ -35,6 +35,12 @@ root_path: "C:\\Users\\Krishnaraj\\Downloads\\testing_youtube_music_downloader"
 # Linux example: "/usr/local/bin/yt-dlp" or just "yt-dlp" if in PATH
 ytdlp_path: "P:\\programs\\python\\youtube-music-sync\\yt-dlp.exe"
 
+auto_update_ytdlp: true
+
+ytdlp_update_interval_hours: 24
+
+js_runtimes: ""
+
 # Path to ffmpeg executable (required for audio conversion)
 # Windows example: "C:/Tools/ffmpeg.exe" or just "ffmpeg" if in PATH
 # Linux example: "/usr/bin/ffmpeg" or just "ffmpeg" if in PATH

@@ -32,6 +32,9 @@ Script and docker that runs periodically and syncs youtube playlists with local 
 
 # How to use
 1. Put your channel url in config.yaml. Further configs can be found in the `config.example.yaml` file. 
+2. Keep `auto_update_ytdlp: true` if you use a project-local `yt-dlp.exe`. The app will check GitHub for the latest stable release and replace the binary automatically.
+3. Modern YouTube extraction needs an external JS runtime. This machine already has `node` available, and the app now auto-detects it. You can also set `js_runtimes` explicitly in config if needed.
+4. Videos removed for copyright or privacy reasons cannot be downloaded anymore; the app will skip those and continue.
 
 # Thanks to 
 1. The kind developers and the community of yt-dlp.

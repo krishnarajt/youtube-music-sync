@@ -10,6 +10,7 @@ from src.WhisperLyricsEngine import WhisperLyricsEngine
 from utils.LyricsEmbedder import LyricsEmbedder
 from src.logging_utils import get_logger
 from utils.name_album_from_folders import NameAlbumFromFolders
+from src.YtdlpManager import YtdlpManager
 
 logger = get_logger(__name__)
 
@@ -27,6 +28,8 @@ class YouTubeApp:
             logger.info(f"Config loaded (Method: {self.config.input_method})")
             logger.info(f"yt-dlp path: {self.config.ytdlp_path}")
             logger.info(f"Root path: {self.config.root_path}")
+            self.ytdlp_manager = YtdlpManager(self.config)
+            self.ytdlp_manager.ensure_ready()
 
             self.state = StateManager()
             self.lyrics_engine = WhisperLyricsEngine()

@@ -77,6 +77,13 @@ class ConfigManager:
 
         self.audio_quality = str(self.data.get("audio_quality", "0"))
         self.extra_args = self.data.get("extra_args", "")
+        self.auto_update_ytdlp = self._as_bool(
+            self.data.get("auto_update_ytdlp", True)
+        )
+        self.ytdlp_update_interval_hours = int(
+            self.data.get("ytdlp_update_interval_hours", 24)
+        )
+        self.js_runtimes = str(self.data.get("js_runtimes", "") or "").strip()
 
     def _load_playlist_file(self, path: str) -> list[str]:
         """
@@ -119,3 +126,11 @@ class ConfigManager:
             path = os.path.expanduser(path)
 
         return str(Path(path).resolve())
+
+    def _as_bool(self, value) -> bool:
+        """Normalize config values that may come in as YAML booleans or strings."""
+        if isinstance(value, bool):
+            return value
+        if value is None:
+            return False
+        return str(value).strip().lower() in {"1", "true", "yes", "on"}

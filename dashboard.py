@@ -12,6 +12,7 @@ from src.StateManager import StateManager
 from src.PlaylistResolver import PlaylistResolver
 from src.DownloadEngine import DownloadEngine
 from src.WhisperLyricsEngine import WhisperLyricsEngine
+from src.YtdlpManager import YtdlpManager
 
 # --- Streamlit Page Config ---
 st.set_page_config(
@@ -133,14 +134,16 @@ def init_engines():
     """Initializes components once to handle state effectively."""
     try:
         config = ConfigManager()
+        ytdlp_manager = YtdlpManager(config)
+        ytdlp_manager.ensure_ready()
         state = StateManager()
         resolver = PlaylistResolver(config, state)
         engine = DownloadEngine(config)
         lyrics = WhisperLyricsEngine()
-        return config, state, resolver, engine, lyrics
+        return config, state, resolver, engine, lyrics, ytdlp_manager
     except Exception as e:
         st.error(f"Initialization Error: {e}")
-        return None, None, None, None, None
+        return None, None, None, None, None, None
 
 
 def run_sync(p, config, state, engine, lyrics_engine):
@@ -176,7 +179,7 @@ def run_sync(p, config, state, engine, lyrics_engine):
 
 # --- Main App ---
 def main():
-    config, state, resolver, engine, lyrics = init_engines()
+    config, state, resolver, engine, lyrics, ytdlp_manager = init_engines()
     if not config:
         return
 
@@ -198,6 +201,19 @@ def main():
         # yt-dlp version
         ytdlp_version = get_ytdlp_version(config.ytdlp_path)
         st.metric("yt-dlp Version", ytdlp_version)
+
+        if st.button(
+            "Update yt-dlp Now",
+            use_container_width=True,
+            help="Check the latest stable release and replace the managed yt-dlp binary if needed",
+        ):
+            with st.spinner("Checking yt-dlp release..."):
+                result = ytdlp_manager.ensure_ready(force_update=True)
+                st.info(result["message"] or "yt-dlp update check completed")
+                st.cache_data.clear()
+                st.cache_resource.clear()
+                time.sleep(1)
+                st.rerun()
 
         # Disk usage with visual
         disk = get_disk_usage(config.root_path)

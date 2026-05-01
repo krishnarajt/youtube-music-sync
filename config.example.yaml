@@ -35,6 +35,18 @@ root_path: "C:\\Users\\Krishnaraj\\Downloads\\testing_youtube_music_downloader"
 # Linux example: "/usr/local/bin/yt-dlp" or just "yt-dlp" if in PATH
 ytdlp_path: "P:\\programs\\python\\youtube-music-sync\\yt-dlp.exe"
 
+# Automatically check the latest yt-dlp stable release and replace the managed binary
+# Recommended when ytdlp_path points at a project-local executable
+auto_update_ytdlp: true
+
+# Minimum time between automatic update checks
+ytdlp_update_interval_hours: 24
+
+# Optional: explicitly choose a JavaScript runtime for modern YouTube extraction
+# Leave blank to auto-detect from PATH (prefers deno, then node, then bun, then quickjs)
+# Examples: "node", "node:C:\\Program Files\\nodejs\\node.exe", "deno"
+js_runtimes: ""
+
 # Path to ffmpeg executable (required for audio conversion)
 # Windows example: "C:/Tools/ffmpeg.exe" or just "ffmpeg" if in PATH
 # Linux example: "/usr/bin/ffmpeg" or just "ffmpeg" if in PATH

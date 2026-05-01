@@ -6,6 +6,7 @@ import os
 import requests
 from pathlib import Path
 from utils.vtt_to_lrc import vtt_to_lrc
+from src.YtdlpManager import YtdlpManager
 
 logger = get_logger(__name__)
 
@@ -17,6 +18,7 @@ class DownloadEngine:
 
     def __init__(self, config: ConfigManager):
         self.config = config
+        self.ytdlp = YtdlpManager(config)
 
     def clean_filename(self, name: str) -> str:
         """Cleans a string to be a safe filename based on OS type."""
@@ -147,8 +149,7 @@ class DownloadEngine:
         archive_file = dest_dir / "download_archive.txt"
 
         # Build the command
-        cmd = [
-            self.config.ytdlp_path,
+        cmd = self.ytdlp.build_command(
             "--extract-audio",
             "--audio-format",
             self.config.audio_format,
@@ -161,7 +162,7 @@ class DownloadEngine:
             str(archive_file),
             "--no-overwrites",
             "--ignore-errors",
-        ]
+        )
 
         # Add ffmpeg path if specified in config
         if getattr(self.config, "ffmpeg_path", None):

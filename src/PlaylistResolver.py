@@ -7,6 +7,7 @@ import os
 import re
 import sys
 from tqdm import tqdm
+from src.YtdlpManager import YtdlpManager
 
 logger = get_logger(__name__)
 
@@ -17,6 +18,7 @@ class PlaylistResolver:
     def __init__(self, config: ConfigManager, state: StateManager):
         self.config = config
         self.state = state
+        self.ytdlp = YtdlpManager(config)
 
     def extract_id(self, url):
         match = re.search(r"list=([^&]+)", url)
@@ -30,14 +32,13 @@ class PlaylistResolver:
             return cached
 
         logger.info(f"Fetching playlist info for: {url}")
-        cmd = [
-            self.config.ytdlp_path,
+        cmd = self.ytdlp.build_command(
             "--flat-playlist",
             "--dump-json",
             "--playlist-items",
             "1",
             url,
-        ]
+        )
 
         try:
             result = subprocess.run(
@@ -86,7 +87,7 @@ class PlaylistResolver:
 
         # Try the /playlists URL first
         url = f"{self.config.channel_url}/playlists"
-        cmd = [self.config.ytdlp_path, "-J", "--flat-playlist", url]
+        cmd = self.ytdlp.build_command("-J", "--flat-playlist", url)
 
         try:
             result = subprocess.run(
