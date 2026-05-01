@@ -207,8 +207,8 @@ class YtdlpManager:
         os.replace(temp_path, target)
 
     def _is_managed_binary(self) -> bool:
-        path = self.config.ytdlp_path
-        return bool(path) and ("/" in path or "\\" in path)
+        configured_path = getattr(self.config, "ytdlp_path_input", self.config.ytdlp_path)
+        return bool(configured_path) and ("/" in configured_path or "\\" in configured_path)
 
     def _should_check_for_update(self) -> bool:
         state_path = self._state_path()
@@ -230,12 +230,17 @@ class YtdlpManager:
 
     def _write_update_state(self, state: dict) -> None:
         state_path = self._state_path()
-        with open(state_path, "w", encoding="utf-8") as handle:
-            json.dump(state, handle, indent=2)
+        try:
+            state_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(state_path, "w", encoding="utf-8") as handle:
+                json.dump(state, handle, indent=2)
+        except OSError as exc:
+            logger.warning(f"Unable to persist yt-dlp update state to {state_path}: {exc}")
 
     def _state_path(self) -> Path:
         target = Path(self.config.ytdlp_path)
-        return target.with_name(f"{target.stem}.version.json")
+        state_dir = self.config.root_path / ".youtube-music-sync"
+        return state_dir / f"{target.stem}.version.json"
 
     def _now_iso(self) -> str:
         return datetime.now(timezone.utc).isoformat()

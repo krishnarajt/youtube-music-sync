@@ -65,7 +65,8 @@ class ConfigManager:
         logger.info(f"Root download path: {self.root_path}")
 
         # Executables
-        self.ytdlp_path = self._resolve_exe(self.data.get("ytdlp_path", "yt-dlp"))
+        self.ytdlp_path_input = self.data.get("ytdlp_path", "yt-dlp")
+        self.ytdlp_path = self._resolve_exe(self.ytdlp_path_input)
         self.ffmpeg_path = self._resolve_exe(self.data.get("ffmpeg_path", ""))
 
         # Audio format normalization
