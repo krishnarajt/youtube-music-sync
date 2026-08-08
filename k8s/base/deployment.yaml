@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: youtube-music-sync
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app: youtube-music-sync
